@@ -1,0 +1,47 @@
+import numpy as np
+from filterpy.kalman import KalmanFilter
+
+# Define Merton KMV credit risk model parameters
+V = 100  # Firm's total assets value
+D = 80   # Firm's debt value
+rf = 0.05  # Risk-free rate
+sigma = 0.2  # Volatility of the firm's assets
+
+# Define Kalman filter parameters
+dt = 1.0  # Time step
+kf = KalmanFilter(dim_x=2, dim_z=1)
+kf.x = np.array([[V - D], [sigma**2]])  # Initial state estimate [Equity Value, Volatility]
+kf.F = np.array([[1, 0], [0, 1]])  # State transition matrix
+kf.H = np.array([[1, 0]])  # Measurement function
+kf.P *= np.eye(2)  # Initial state covariance
+kf.R *= 0.01  # Measurement noise covariance
+
+# Generate synthetic data for demonstration
+np.random.seed(0)
+num_steps = 50
+true_equity_values = [V - D]
+measured_equity_values = [V - D + np.random.normal(0, 1)]
+measured_volatilities = [sigma**2 + np.random.normal(0, 0.05)]
+
+for _ in range(num_steps - 1):
+    true_equity_values.append(true_equity_values[-1] + np.random.normal(0, 1))
+    measured_equity_values.append(true_equity_values[-1] + np.random.normal(0, 1))
+    measured_volatilities.append(sigma**2 + np.random.normal(0, 0.05))
+
+# Kalman filtering and Merton KMV credit risk model estimation
+estimated_equity_values = []
+estimated_volatilities = []
+
+for z in zip(measured_equity_values, measured_volatilities):
+    kf.predict()
+    kf.update(np.array([z[0]]))
+
+    equity_estimate = kf.x[0, 0]
+    volatility_estimate = kf.x[1, 0]
+
+    estimated_equity_values.append(equity_estimate)
+    estimated_volatilities.append(volatility_estimate)
+
+# Print the estimated equity values and volatilities
+print("Estimated Equity Values:", estimated_equity_values)
+print("Estimated Volatilities:", estimated_volatilities)
